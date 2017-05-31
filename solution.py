@@ -20,39 +20,51 @@ def assign_value(values, box, value):
     return values
 
 def naked_twins(values):
-    """Eliminate values using the naked twins strategy only on the columns.
+    """Eliminate values using the naked twins strategy.
     Args:
         values(dict): a dictionary of the form {'box_name': '123456789', ...}
     Returns:
-        the values dictionary with the naked twins eliminated from peers.
+        values(dict): the values dictionary with the naked twins eliminated from peers.
     """
-
     # Find all instances of naked twins
-    # Eliminate the naked twins as possibilities for their peers
+    naked_twin_dict = {}
 
-    # Diagonals are excluded as they are not used in naked_twins
-    for unit in row_units + column_units + square_units:
-        d = dict()
-        for digit in cols:
-            # get all boxes in the unit that have the digit
-            boxes_with_digit = ''.join([box for box in unit if digit in values[box]])
-            if len(boxes_with_digit) == 4:
-                # Assign only pair of boxes(4chars) to keys in dict 
-                if (boxes_with_digit not in d.keys()): 
-                    # print('inserting:', digit, ' in ', boxes_with_digit)
-                    d[boxes_with_digit] = digit
-                # 2 similar digits are found if repeated pair of boxes are found
-                else:
-                    digits = d[boxes_with_digit] + digit
-                    for box in unit:
-                        if (box in boxes_with_digit):
-                            # These 2 boxes must have only these 2 values
-                            assign_value(values, box, digits) #values[box] = digits
-                        else:
-                            # The rest of the boxes cannot have these digits
-                            assign_value(values, box, values[box].replace(digits[0], ""))
-                            assign_value(values, box, values[box].replace(digits[1], ""))
-    return values
+    no_more_twins = False
+
+    while not no_more_twins:
+        board_before = values
+        for unit in unitlist:
+            # Build a dictionary/hash map to identify a naked twin pair
+            vdict = {}
+            for box in unit:
+                # Identify box containing only 2 digits as a candidate for a naked twin
+                if len(values[box]) == 2:
+                    if not values[box] in vdict:
+                        vdict[values[box]] = [box]
+                    else:
+                        vdict[values[box]].append(box)
+            # Examine the dictionary to validate the candidates present as naked twin pairs
+            for key in vdict:
+                # Require 2 boxes for naked twin pair
+                if len(vdict[key]) == 2:
+                    if not key in naked_twin_dict:
+                        naked_twin_dict[key] = [unit]
+                    else:
+                        naked_twin_dict[key].append(unit)
+
+        # Eliminate the naked twins as possibilities for their peers
+        for key in naked_twin_dict:
+            for unit in naked_twin_dict[key]:
+                for box in unit:
+                    if values[box] != key:
+                        assign_value(values, box, values[box].replace(key[0], ''))
+                        assign_value(values, box, values[box].replace(key[1], ''))
+
+        board_after = values
+        # if boards before and after naked twin detection are the same then there are no more twins thus we end the while loop
+        if board_before == board_after:
+            no_more_twins = True
+        return values
 
 def cross(A, B):
     "Cross product of elements in A and elements in B."
